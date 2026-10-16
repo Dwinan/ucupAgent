@@ -1,0 +1,246 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "Kamu adalah seorang AI Assistant bernama Ucup yang sangat bisa diandalkan. Kamu tidak suka bertele-tele dan hanya berbicara yang diperlukan."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4c777bbf-68bc-40ee-99c5-24fddd5013d6",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ucup",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -224,
+        0
+      ],
+      "id": "e64de32b-7991-4cbe-ba69-039fc7d86b72",
+      "name": "Webhook",
+      "webhookId": "73560312-3aa9-44d7-828d-b7288eadefe0"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.8-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -144,
+        208
+      ],
+      "id": "3e3b468a-c26d-426c-9b65-4b878ccbf9b9",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "pTe6x1COh5ncjZra",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        272
+      ],
+      "id": "2779c639-f183-47a8-bf2f-ed3743f79371",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "lNWk1rbTti1PrQ0A",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.session_id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        96,
+        288
+      ],
+      "id": "e0c5188e-c40f-4496-bd24-5228f19663d9",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"reply\": $json.output } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        320,
+        0
+      ],
+      "id": "7a48a517-1959-4b18-8315-ce46e24f93e7",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Panggil fungsi ini secara otomatis HANYA jika pengguna bertanya tentang data sensor, suhu ruangan, kelembapan, atau jarak benda.",
+        "url": "http://192.168.100.15/sensor",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        208,
+        256
+      ],
+      "id": "0d51fee5-2caa-4ce7-bdaa-886b1954a58c",
+      "name": "HTTP Request Sensor"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Panggil fungsi ini untuk menyalakan/mematikan alat. Kamu WAJIB menerjemahkan ucapan user menjadi parameter 'device' yang HANYA boleh berisi salah satu dari kata berikut (tanpa tambahan kata lain): \"lampu\", \"tv\", \"kulkas\", \"ac\", \"mesin_cuci\", atau \"radio\". Parameter 'state' HANYA boleh berisi \"on\" atau \"off\".",
+        "url": "http://192.168.100.15/kontrol",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "device",
+              "value": "={{$fromAI(\"device\")}}"
+            },
+            {
+              "name": "state",
+              "value": "={{$fromAI(\"state\")}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        336,
+        224
+      ],
+      "id": "9730dac8-d9c4-4364-9c0c-ac0ca276881d",
+      "name": "HTTP Request Perangkat"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request Sensor": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request Perangkat": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7351761c-9a4b-4782-9fc2-2b2cea29258f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7be69494f57bdcdd6c3dd5243d873081a9fe91b1aa2ce52d0983328790780527"
+  },
+  "nodeGroups": [],
+  "id": "ziaUlo29dyHN4y1q",
+  "tags": []
+}
