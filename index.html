@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ucup Agent - AI Assistant Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg-color: #0b0d13;
+            --surface-color: rgba(22, 25, 33, 0.7);
+            --surface-border: rgba(255, 255, 255, 0.1);
+            --primary: #6366f1; /* Indigo */
+            --primary-glow: rgba(99, 102, 241, 0.25);
+            --success: #10b981; /* Green */
+            --warning: #f59e0b; /* Amber */
+            --danger: #ef4444; /* Red */
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --font-main: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            overflow: hidden;
+            display: flex;
+            height: 100vh;
+            /* Latar belakang ramai dengan grid */
+            background-image: 
+                linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+                radial-gradient(circle at top right, #1a1c28 0%, transparent 60%);
+            background-size: 30px 30px, 30px 30px, 100% 100%;
+        }
+
+        /* --- Boot Screen --- */
+        #boot-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color); z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; transition: opacity 0.6s ease, visibility 0.6s;
+        }
+        #boot-screen h1 { font-size: 3em; font-weight: 600; color: var(--text-main); margin-bottom: 10px; letter-spacing: 2px;}
+        #boot-screen p { opacity: 0.6; color: var(--text-muted); font-size: 1.2em;}
+        #boot-screen .start-btn { margin-top: 30px; padding: 15px 40px; border-radius: 30px; background: var(--primary); color: white; border: none; font-size: 1.1em; font-weight: 600; cursor: pointer; box-shadow: 0 0 20px var(--primary-glow); animation: pulse-btn 2s infinite;}
+
+        @keyframes pulse-btn { 0%, 100% { transform: scale(1); box-shadow: 0 0 20px var(--primary-glow); } 50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(99, 102, 241, 0.6); } }
+
+        /* --- Main Layout --- */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 20px;
+            padding: 20px;
+            width: 100%;
+            height: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard { grid-template-columns: 1fr; grid-template-rows: auto 1fr; overflow-y: auto; height: auto; min-height: 100vh;}
+            .sidebar { max-height: max-content; }
+        }
+
+        /* --- Sidebar (Kiri) --- */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .glass-panel {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .panel-header { font-size: 0.8em; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 15px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--surface-border); padding-bottom: 8px;}
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em; font-weight: 500;}
+        .data-label { color: var(--text-muted); }
+
+        /* Status Bar anim */
+        .status-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+        .status-fill { height: 100%; background: var(--primary); width: 14%; transition: width 0.5s; }
+
+        /* --- Orb Visualizer --- */
+        .orb-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 250px;
+            position: relative;
+        }
+
+        .core-ring { position: absolute; border-radius: 50%; border: 1px dashed rgba(255,255,255,0.1); transition: all 0.5s ease; }
+        .ring-1 { width: 180px; height: 180px; animation: spin-slow 10s linear infinite; }
+        .ring-2 { width: 130px; height: 130px; border: 1px solid rgba(99, 102, 241, 0.3); animation: spin-slow-reverse 8s linear infinite; }
+
+        .core-orb {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #4a4e69, #1a1c28);
+            box-shadow: 0 0 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.05);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 20; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .core-text { font-size: 14px; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.8); }
+
+        @keyframes spin-slow { 100% { transform: rotate(360deg); } }
+        @keyframes spin-slow-reverse { 100% { transform: rotate(-360deg); } }
+
+        /* Animasi State Orb */
+        .state-listening .core-orb { 
+            background: radial-gradient(circle at 30% 30%, #60a5fa, #2563eb);
+            box-shadow: 0 0 50px rgba(37, 99, 235, 0.6); transform: scale(1.2);
+        }
+        .state-thinking .core-orb { 
+            background: radial-gradient(circle at 30% 30%, #a78bfa, #7c3aed);
+            box-shadow: 0 0 60px rgba(124, 58, 237, 0.6); animation: breathe-fast 0.8s infinite alternate;
+        }
+        .state-responding .core-orb { 
+            background: radial-gradient(circle at 30% 30%, #34d399, #059669);
+            box-shadow: 0 0 50px rgba(5, 150, 105, 0.5); animation: breathe-slow 1.5s infinite alternate;
+        }
+        @keyframes breathe-fast { 0% { transform: scale(1); } 100% { transform: scale(1.2); } }
+        @keyframes breathe-slow { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+
+        /* --- Audio Wave Visualizer (Pemanis) --- */
+        .audio-wave { display: flex; gap: 3px; height: 30px; align-items: flex-end; justify-content: center; margin-top: 20px; opacity: 0.3;}
+        .wave-bar { width: 4px; background: var(--text-main); border-radius: 2px; height: 20%; transition: height 0.1s; }
+        .state-listening .audio-wave { opacity: 1; }
+        .state-listening .wave-bar { background: #60a5fa; animation: wave-anim 0.5s infinite alternate; }
+        .state-listening .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+        .state-listening .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+        .state-listening .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+        .state-listening .wave-bar:nth-child(5) { animation-delay: 0.15s; }
+        @keyframes wave-anim { 0% { height: 20%; } 100% { height: 100%; } }
+
+        /* --- Tombol Kontrol --- */
+        .controls { display: flex; flex-direction: column; gap: 10px; }
+        .btn { padding: 16px 20px; font-size: 1.05em; font-weight: 600; border-radius: 12px; cursor: pointer; border: none; transition: all 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; width: 100%; }
+        
+        .talk-btn { background: rgba(255,255,255,0.05); color: var(--text-main); border: 1px solid var(--surface-border); }
+        .talk-btn:hover { background: rgba(255,255,255,0.1); }
+        .talk-btn.recording { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 5px 20px var(--primary-glow); }
+        .talk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .interrupt-btn { background: rgba(239, 68, 68, 0.1); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); display: none;}
+        .interrupt-btn:hover { background: var(--danger); color: white; }
+
+        /* --- Chat Area (Kanan) --- */
+        .chat-area { display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* Marquee Data Stream */
+        .data-stream { font-family: var(--font-mono); font-size: 0.8em; color: var(--primary); background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 8px 8px 0 0; border-bottom: 1px solid var(--surface-border); display: flex; gap: 10px; align-items: center;}
+        .data-stream span { color: var(--success); font-weight: bold; }
+        
+        .chat-box { flex-grow: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
+        .chat-box::-webkit-scrollbar { width: 8px; }
+        .chat-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+        /* Pesan Chat */
+        .msg-wrapper { display: flex; flex-direction: column; max-width: 85%; }
+        .msg-wrapper.user { align-self: flex-end; }
+        .msg-wrapper.ai { align-self: flex-start; }
+
+        .msg-label { font-size: 0.75em; color: var(--text-muted); margin-bottom: 5px; font-weight: 600; letter-spacing: 1px;}
+        .msg-wrapper.user .msg-label { text-align: right; }
+
+        .msg-content { padding: 15px 20px; border-radius: 16px; font-size: 1.15em; line-height: 1.5; font-weight: 400; box-shadow: 0 4px 15px rgba(0,0,0,0.1);}
+        
+        .msg-wrapper.user .msg-content { background: rgba(255,255,255,0.08); border-top-right-radius: 4px; color: var(--text-main); }
+        .msg-wrapper.ai .msg-content { background: var(--primary-glow); border: 1px solid rgba(99, 102, 241, 0.4); border-top-left-radius: 4px; }
+
+        .thinking-indicator { font-size: 0.9em; color: var(--text-muted); font-style: italic; display: flex; gap: 5px; align-items: center; padding: 10px 20px; background: rgba(0,0,0,0.3); border-radius: 20px; width: fit-content; align-self: flex-start;}
+        .dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; animation: blink-dot 1.4s infinite both; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink-dot { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
+
+    </style>
+</head>
+<body>
+    <div id="boot-screen">
+        <h1>UCUP AGENT</h1>
+        <p>Sistem Komunikasi N8N Aktif</p>
+        <button class="start-btn" id="start-btn">INisialisasi Sistem</button>
+    </div>
+
+    <div class="dashboard">
+        
+        <!-- SIDEBAR KIRI (Status & Kontrol) -->
+        <div class="sidebar">
+            <div class="glass-panel">
+                <div class="panel-header">System Diagnostics</div>
+                <div class="data-row"><span class="data-label">Status</span> <span id="sys-status" style="color:var(--success)">Idle</span></div>
+                <div class="data-row"><span class="data-label">Mic Input</span> <span id="mic-status" style="color:var(--text-muted)">Standby</span></div>
+                <div class="data-row"><span class="data-label">Session ID</span> <span id="sess-id" style="font-family:var(--font-mono); font-size:0.8em; color:var(--primary)">-</span></div>
+                <div class="data-row" style="margin-top: 15px;"><span class="data-label">Core Load</span> <span id="cpu-text">14%</span></div>
+                <div class="status-bar"><div class="status-fill" id="cpu-bar"></div></div>
+            </div>
+
+            <div class="glass-panel orb-container" id="core-visualizer">
+                <div class="core-ring ring-1"></div>
+                <div class="core-ring ring-2"></div>
+                <div class="core-orb"><span class="core-text">UCUP</span></div>
+                
+                <div class="audio-wave">
+                    <div class="wave-bar"></div><div class="wave-bar"></div>
+                    <div class="wave-bar"></div><div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                </div>
+            </div>
+
+            <div class="glass-panel controls">
+                <button class="btn talk-btn" id="talk-btn">🎤 Tekan & Mulai Bicara</button>
+                <button class="btn interrupt-btn" id="interrupt-btn">⏹ Hentikan Suara Ucup</button>
+                <div style="text-align: center; font-size: 0.7em; color: var(--text-muted); margin-top: 5px;" id="tts-debug">TTS Module: Ready</div>
+            </div>
+        </div>
+
+        <!-- AREA KANAN (Chat & Logs) -->
+        <div class="glass-panel chat-area" style="padding: 0;">
+            <div class="data-stream">
+                <span>[LIVE]</span> 
+                <marquee scrollamount="5" id="marquee-text">Menunggu input suara pengguna... // Node N8N terhubung di port 5678... // Enkripsi End-to-End aktif...</marquee>
+            </div>
+            
+            <div class="chat-box" id="chat-box">
+                <!-- Pesan Pembuka -->
+                <div class="msg-wrapper ai">
+                    <div class="msg-label">UCUP AGENT</div>
+                    <div class="msg-content">
+                        Halo! Saya Ucup. Layar obrolan ini sekarang lebih luas dan riwayat percakapan kita akan tersimpan di sini. Tekan tombol <strong>"Tekan & Mulai Bicara"</strong> di sebelah kiri untuk berinteraksi.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const bootScreen = document.getElementById('boot-screen');
+        const startBtn = document.getElementById('start-btn');
+        const chatBox = document.getElementById('chat-box');
+        
+        const sysStatus = document.getElementById('sys-status');
+        const micStatus = document.getElementById('mic-status');
+        const sessIdDisplay = document.getElementById('sess-id');
+        const talkBtn = document.getElementById('talk-btn');
+        const interruptBtn = document.getElementById('interrupt-btn');
+        const ttsDebug = document.getElementById('tts-debug');
+        const coreVisualizer = document.getElementById('core-visualizer');
+        const marqueeText = document.getElementById('marquee-text');
+
+        let isSystemActive = false;
+        let isAiSpeaking = false;
+        let currentState = 'STANDBY';
+        let thinkingElement = null; // Untuk menyimpan elemen "sedang mengetik"
+
+        // --- SESSION ID ---
+        function getSessionId() {
+            let sessionId = sessionStorage.getItem('ucup_session_id');
+            if (!sessionId) {
+                sessionId = 'usr_' + Math.random().toString(36).substring(2, 8);
+                sessionStorage.setItem('ucup_session_id', sessionId);
+            }
+            return sessionId;
+        }
+
+        // --- FUNGSI TAMBAH PESAN KE CHAT ---
+        function appendMessage(sender, text) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `msg-wrapper ${sender}`;
+            
+            const label = document.createElement('div');
+            label.className = 'msg-label';
+            label.innerText = sender === 'user' ? 'ANDA' : 'UCUP AGENT';
+
+            const content = document.createElement('div');
+            content.className = 'msg-content';
+            content.innerHTML = text.replace(/\n/g, '<br>');
+
+            wrapper.appendChild(label);
+            wrapper.appendChild(content);
+            chatBox.appendChild(wrapper);
+            
+            // Auto scroll ke bawah
+            setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
+        }
+
+        function showThinking() {
+            if (thinkingElement) return;
+            thinkingElement = document.createElement('div');
+            thinkingElement.className = 'thinking-indicator';
+            thinkingElement.innerHTML = `Memproses sinyal <div class="dot"></div><div class="dot"></div><div class="dot"></div>`;
+            chatBox.appendChild(thinkingElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function removeThinking() {
+            if (thinkingElement) {
+                thinkingElement.remove();
+                thinkingElement = null;
+            }
+        }
+
+        // --- SPEECH RECOGNITION ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'id-ID';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        // --- TTS ENGINE ---
+        const synth = window.speechSynthesis;
+        let cachedVoices = [];
+
+        function loadVoices() { cachedVoices = synth.getVoices(); }
+        loadVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
+        function getBestVoice() {
+            const voices = cachedVoices.length ? cachedVoices : synth.getVoices();
+            let premiumVoice = voices.find(v => v.lang.includes('id') && (v.name.includes('Online') || v.name.includes('Wavenet') || v.name.includes('Natural') || v.name.includes('Google')));
+            if (premiumVoice) return premiumVoice;
+            return voices.find(v => v.lang.includes('id')) || voices[0];
+        }
+
+        // --- STATE MANAGER ---
+        function updateState(state) {
+            currentState = state;
+            coreVisualizer.className = 'glass-panel orb-container'; 
+            
+            if (state === 'LISTENING') {
+                coreVisualizer.classList.add('state-listening');
+                sysStatus.innerText = "Receiving Audio"; sysStatus.style.color = "var(--primary)";
+                micStatus.innerText = "Recording..."; micStatus.style.color = "var(--primary)";
+                talkBtn.innerText = "🔴 Mendengarkan...";
+                talkBtn.classList.add('recording');
+                talkBtn.disabled = false;
+                interruptBtn.style.display = "none";
+                marqueeText.innerText = "Audio stream dibuka... Menganalisa frekuensi vokal pengguna...";
+            } else if (state === 'THINKING') {
+                coreVisualizer.classList.add('state-thinking');
+                sysStatus.innerText = "Processing Data"; sysStatus.style.color = "var(--warning)";
+                micStatus.innerText = "Locked"; micStatus.style.color = "var(--text-muted)";
+                talkBtn.innerText = "⏳ Mengirim ke N8N...";
+                talkBtn.classList.remove('recording');
+                talkBtn.disabled = true;
+                interruptBtn.style.display = "none";
+                marqueeText.innerText = "Data dikirim ke Webhook N8N... Menunggu respons dari Large Language Model...";
+            } else if (state === 'RESPONDING') {
+                coreVisualizer.classList.add('state-responding');
+                sysStatus.innerText = "Transmitting Reply"; sysStatus.style.color = "var(--success)";
+                micStatus.innerText = "Standby";
+                talkBtn.innerText = "🎤 Tekan & Mulai Bicara";
+                talkBtn.classList.remove('recording');
+                talkBtn.disabled = false;
+                interruptBtn.style.display = "flex";
+                marqueeText.innerText = "Menerima paket balasan... Modul Text-to-Speech diaktifkan...";
+            } else { // STANDBY
+                sysStatus.innerText = "Idle"; sysStatus.style.color = "var(--text-muted)";
+                micStatus.innerText = "Standby"; micStatus.style.color = "var(--text-muted)";
+                talkBtn.innerText = "🎤 Tekan & Mulai Bicara";
+                talkBtn.classList.remove('recording');
+                talkBtn.disabled = false;
+                interruptBtn.style.display = "none";
+                marqueeText.innerText = "Sistem siap. Menunggu perintah suara dari pengguna...";
+            }
+        }
+
+        // --- EVENTS KONTROL ---
+        talkBtn.addEventListener('click', () => {
+            if (!isSystemActive || currentState === 'THINKING') return;
+            
+            if (isAiSpeaking) {
+                synth.cancel(); 
+                isAiSpeaking = false;
+            }
+            try {
+                recognition.stop(); 
+                setTimeout(() => { recognition.start(); updateState('LISTENING'); }, 100);
+            } catch(e) { console.log(e); }
+        });
+
+        interruptBtn.addEventListener('click', () => {
+            if (isAiSpeaking) {
+                synth.cancel();
+                isAiSpeaking = false;
+                ttsDebug.innerText = "TTS: Stopped by User";
+                updateState('STANDBY');
+            }
+        });
+
+        startBtn.addEventListener('click', () => {
+            bootScreen.style.opacity = '0';
+            setTimeout(() => { bootScreen.style.display = 'none'; }, 600);
+            
+            isSystemActive = true;
+            sessIdDisplay.innerText = getSessionId();
+            synth.resume(); synth.cancel(); 
+            
+            const unlockAudio = new SpeechSynthesisUtterance('Sistem diinisialisasi.'); 
+            const voice = getBestVoice();
+            if (voice) unlockAudio.voice = voice;
+            synth.speak(unlockAudio);
+
+            updateState('STANDBY');
+        });
+
+        // --- FETCH KE N8N WEBHOOK ---
+        recognition.onresult = async (event) => {
+            const transcript = event.results[0][0].transcript;
+            updateState('THINKING');
+            
+            // Tampilkan pesan user ke chat
+            appendMessage('user', transcript);
+            showThinking();
+
+            try {
+                // SESUAIKAN URL INI JIKA ERROR CORS/NOT FOUND
+                const n8nWebhookUrl = 'http://localhost:5678/webhook/ucup'; 
+                // Jika testing n8n: 'http://localhost:5678/webhook-test/ucup'
+                
+                const response = await fetch(n8nWebhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: transcript,
+                        chatInput: transcript,
+                        session_id: getSessionId()
+                    })
+                });
+
+                if (!response.ok) throw new Error("Koneksi ke server n8n gagal.");
+
+                const data = await response.json();
+                removeThinking();
+
+                let aiText = data.reply || data.output || "Maaf, respon dari server kosong.";
+                
+                // Hilangkan karakter markdown khusus untuk dibaca TTS
+                const cleanTextForTTS = aiText.replace(/[*#_`~()><\-]/g, '');
+
+                updateState('RESPONDING');
+                appendMessage('ai', aiText); // Tampilkan teks asli dengan formatnya di UI
+                speakText(cleanTextForTTS); // Baca teks yang sudah dibersihkan
+
+            } catch (error) {
+                removeThinking();
+                appendMessage('ai', `<span style="color:var(--danger)">Error Sistem: ${error.message}</span>`);
+                updateState('STANDBY');
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Mic error:", event.error);
+            removeThinking();
+            updateState('STANDBY');
+        };
+
+        // --- TTS PLAYBACK ---
+        function speakText(text) {
+            isAiSpeaking = true;
+            synth.resume(); synth.cancel(); 
+
+            // Pecah teks jadi kalimat agar lebih natural
+            const chunks = text.match(/[^.!?]+[.!?]+|\s*[^.!?]+$/g) || [text];
+            let index = 0;
+
+            function speakNextChunk() {
+                if (index >= chunks.length) {
+                    isAiSpeaking = false;
+                    ttsDebug.innerText = "TTS: Idle";
+                    updateState('STANDBY');
+                    return;
+                }
+
+                const utterance = new SpeechSynthesisUtterance(chunks[index]);
+                const voice = getBestVoice();
+                if (voice) utterance.voice = voice;
+                
+                utterance.pitch = 1.0; 
+                utterance.rate = 0.95; 
+
+                utterance.onstart = () => { ttsDebug.innerText = `TTS: Playing block ${index+1}/${chunks.length}`; };
+                utterance.onend = () => { index++; speakNextChunk(); };
+                utterance.onerror = () => { index++; speakNextChunk(); };
+
+                synth.speak(utterance);
+            }
+            speakNextChunk();
+        }
+
+        // Random CPU load simulator untuk pemanis UI
+        setInterval(() => {
+            if(isSystemActive) {
+                const cpuVal = (Math.random() * 15 + 8).toFixed(1);
+                document.getElementById('cpu-text').innerText = cpuVal + '%';
+                document.getElementById('cpu-bar').style.width = cpuVal + '%';
+            }
+        }, 1500);
+    </script>
+</body>
+</html>

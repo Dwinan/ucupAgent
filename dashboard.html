@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Kontrol Utama (Soft Blue)</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            /* Warna Dasar - Biru Soft */
+            --bg-color: #e8f4fd; /* Biru pastel yang sangat lembut */
+            --card-bg: #ffffff;
+            --card-border: #dbeafe; /* Biru muda untuk garis tepi kotak */
+            
+            /* Warna Teks */
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            
+            /* Warna Aksen / Menyala */
+            --glow-warm: #f59e0b; /* Kuning Amber */
+            --glow-cool: #0ea5e9; /* Biru Cerah */
+            
+            /* Warna Mati */
+            --off-color: #94a3b8;
+            --badge-off-bg: #f8fafc;
+            
+            /* Bayangan Modern */
+            --card-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.05), 0 4px 6px -2px rgba(14, 165, 233, 0.025);
+            --card-shadow-hover: 0 20px 25px -5px rgba(14, 165, 233, 0.1), 0 10px 10px -5px rgba(14, 165, 233, 0.04);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            /* Pola titik halus berwarna biru agak gelap agar menyatu dengan background */
+            background-image: radial-gradient(#bfdbfe 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            color: var(--text-main);
+            margin: 0;
+            padding: 30px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0 30px 0;
+            border-bottom: 2px dashed #bfdbfe;
+            margin-bottom: 40px;
+        }
+
+        .header-title h1 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: #1e293b;
+        }
+
+        .header-title p {
+            margin: 8px 0 0 0;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .clock {
+            font-family: monospace;
+            font-size: 22px;
+            font-weight: 700;
+            color: #0284c7; /* Warna teks jam biru elegan */
+            background: #ffffff;
+            padding: 10px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.1);
+            border: 1px solid var(--card-border);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .device {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 35px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--card-shadow);
+            cursor: default;
+        }
+
+        .device:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .device i {
+            font-size: 55px;
+            margin-bottom: 20px;
+            transition: all 0.4s ease;
+        }
+
+        .device h2 {
+            margin: 0 0 15px 0;
+            font-size: 17px;
+            font-weight: 600;
+            color: #334155;
+            letter-spacing: 0.3px;
+        }
+
+        .status-badge {
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        /* --- KONDISI MATI (OFF) --- */
+        .device.off i {
+            color: var(--off-color);
+        }
+        .device.off .status-badge {
+            background: var(--badge-off-bg);
+            color: var(--text-muted);
+            border: 1px solid #cbd5e1;
+        }
+
+        /* --- KONDISI MENYALA (WARM / Lampu, TV, Mesin Cuci, Radio) --- */
+        .device.on {
+            border-color: rgba(245, 158, 11, 0.3);
+            background: linear-gradient(145deg, #ffffff, #fffbeb); 
+        }
+        .device.on i {
+            color: var(--glow-warm);
+            filter: drop-shadow(0 8px 10px rgba(245, 158, 11, 0.3));
+            transform: scale(1.1);
+        }
+        .device.on .status-badge {
+            color: #b45309;
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+        }
+
+        /* --- KONDISI MENYALA (COOL / AC & Kulkas) --- */
+        .device.on-cool {
+            border-color: rgba(14, 165, 233, 0.3);
+            background: linear-gradient(145deg, #ffffff, #f0f9ff); 
+        }
+        .device.on-cool i {
+            color: var(--glow-cool);
+            filter: drop-shadow(0 8px 10px rgba(14, 165, 233, 0.3));
+            transform: scale(1.1);
+        }
+        .device.on-cool .status-badge {
+            color: #0369a1;
+            background: #e0f2fe;
+            border: 1px solid #bae6fd;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-title">
+            <h1>Sistem Kontrol Utama</h1>
+            <p><i class="fas fa-robot" style="color:#0ea5e9; margin-right: 5px;"></i> Terhubung ke AI ; Buatan Kelompok Ucup • Pemantauan Real-time</p>
+        </div>
+        <div class="clock" id="live-clock">00:00:00</div>
+    </div>
+
+    <div class="container">
+        <!-- Lampu Utama -->
+        <div id="lampu" class="device off">
+            <i class="fas fa-lightbulb"></i>
+            <h2>Lampu Utama</h2>
+            <div class="status-badge" id="badge-lampu">OFF</div>
+        </div>
+        
+        <!-- Televisi -->
+        <div id="tv" class="device off">
+            <i class="fas fa-tv"></i>
+            <h2>Televisi</h2>
+            <div class="status-badge" id="badge-tv">OFF</div>
+        </div>
+        
+        <!-- Kulkas -->
+        <div id="kulkas" class="device off">
+            <i class="fas fa-snowflake"></i>
+            <h2>Kulkas</h2>
+            <div class="status-badge" id="badge-kulkas">OFF</div>
+        </div>
+        
+        <!-- AC -->
+        <div id="ac" class="device off">
+            <i class="fas fa-wind"></i>
+            <h2>AC/Pendingin Ruangan</h2>
+            <div class="status-badge" id="badge-ac">OFF</div>
+        </div>
+        
+        <!-- Mesin Cuci -->
+        <div id="mesin_cuci" class="device off">
+            <i class="fas fa-soap"></i>
+            <h2>Mesin Cuci</h2>
+            <div class="status-badge" id="badge-mesin_cuci">OFF</div>
+        </div>
+        
+        <!-- Radio -->
+        <div id="radio" class="device off">
+            <i class="fas fa-radio"></i>
+            <h2>Radio / Audio</h2>
+            <div class="status-badge" id="badge-radio">OFF</div>
+        </div>
+    </div>
+
+    <script>
+        // Update Jam Real-time
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second:'2-digit', hour12: false });
+            document.getElementById('live-clock').textContent = timeString;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        const devices = ['lampu', 'tv', 'kulkas', 'ac', 'mesin_cuci', 'radio'];
+        const coolDevices = ['kulkas', 'ac']; 
+
+        // GANTI DENGAN IP ESP32 ANDA YANG MUNCUL DI SERIAL MONITOR
+        const ESP32_IP = "http://192.168.100.15"; 
+
+        setInterval(async () => {
+            try {
+                // Dashboard kini langsung menarik data dari otak fisik (ESP32)
+                let response = await fetch(`${ESP32_IP}/status`);
+                let data = await response.json();
+                
+                devices.forEach(device => {
+                    let card = document.getElementById(device);
+                    let badge = document.getElementById('badge-' + device);
+                    
+                    if (data[device] === 'on') {
+                        card.className = coolDevices.includes(device) ? 'device on-cool' : 'device on';
+                        badge.textContent = 'ON';
+                    } else {
+                        card.className = 'device off';
+                        badge.textContent = 'OFF';
+                    }
+                });
+            } catch (error) {
+                console.error("Gagal terhubung ke ESP32...", error);
+            }
+        }, 1000); // Polling setiap 1 detik
+    </script>
+</body>
+</html>
